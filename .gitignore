@@ -1,16 +1,1 @@
-﻿.idea/*
-*/.idea/*
-.vs/*
-*/bin/*
-*/obj/*
-/obj/*
-/bin/*
-src/bin/*
-src/obj/*
-store.json*
-store.db*
-CodeGraphData/*
-log/*
-backup/*
-*.log
-*.bk
+﻿
