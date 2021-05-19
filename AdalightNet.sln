@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdalightNet", "AdalightNet\AdalightNet.csproj", "{0D8CA5D7-6E17-4E33-8582-68F5B50850AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTest", "ConsoleTest\ConsoleTest.csproj", "{D5B7028F-AA4C-4472-86A8-0C79B35F215B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0D8CA5D7-6E17-4E33-8582-68F5B50850AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D8CA5D7-6E17-4E33-8582-68F5B50850AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D8CA5D7-6E17-4E33-8582-68F5B50850AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D8CA5D7-6E17-4E33-8582-68F5B50850AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5B7028F-AA4C-4472-86A8-0C79B35F215B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5B7028F-AA4C-4472-86A8-0C79B35F215B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5B7028F-AA4C-4472-86A8-0C79B35F215B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5B7028F-AA4C-4472-86A8-0C79B35F215B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
