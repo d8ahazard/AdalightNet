@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO.Ports;
-using System.Linq;
 
 namespace AdalightNet {
-    public class Adalight : IDisposable
+    public sealed class Adalight : IDisposable
     {
         private readonly List<Color> _ledMatrix;
 
@@ -205,7 +204,7 @@ namespace AdalightNet {
         private bool _disposedValue; // To detect redundant calls
 
         // IDisposable
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!_disposedValue) {
                 if (disposing) {

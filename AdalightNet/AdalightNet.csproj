@@ -3,6 +3,12 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>9</LangVersion>
+        <PackageProjectUrl>https://github.com/d8ahazard/AdalightNet</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/d8ahazard/AdalightNet/blob/main/LICENSE</PackageLicenseUrl>
+        <PackageIconUrl>http://ladyada.net/images/adalight/topheaderbadge.png</PackageIconUrl>
+        <RepositoryUrl>https://github.com/d8ahazard/AdalightNet</RepositoryUrl>
+        <RepositoryType>Git</RepositoryType>
+        <PackageTags>adalight</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>

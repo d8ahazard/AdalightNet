@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using AdalightNet;
 
 namespace ConsoleTest {
-	class Program {
-		static void Main() {
+	internal static class Program {
+		private static void Main() {
 			var ports = Adalight.FindDevices();
 			var devs = new List<Adalight>();
 			if (ports.Count > 0) {
@@ -31,10 +31,10 @@ namespace ConsoleTest {
 
 				foreach (var dev in devs) {
 					// Connect to device
-					dev.Connect();
+					var connected = dev.Connect();
 					var count = dev.LedCount;
 					var color = Color.Red;
-					Console.WriteLine($"Setting strip on port {dev.PortNumber} to red.");
+					if (connected) Console.WriteLine($"Setting strip on port {dev.PortNumber} to red.");
 					for (var i = 0; i < count; i++) {
 						// Update each pixel, but don't set the value yet.
 						dev.UpdatePixel(i, color, false);
@@ -82,7 +82,8 @@ namespace ConsoleTest {
 				foreach (var dev in devs) {
 					// Disconnect our device. If "false" is specified as a parameter, lights will remain in
 					// the last state they were in.
-					dev.Disconnect();
+					var disconnected = dev.Disconnect();
+					if (disconnected) Console.WriteLine($"Device on port {dev.PortNumber} is disconnected.");
 					// Completely dispose of it and the underlying port
 					dev.Dispose();
 				}
