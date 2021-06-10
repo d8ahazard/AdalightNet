@@ -7,26 +7,37 @@ using AdalightNet;
 namespace ConsoleTest {
 	internal static class Program {
 		private static void Main() {
-			var ports = Adalight.FindDevices();
+			var devInfo = Adalight.FindDevices();
 			var devs = new List<Adalight>();
-			if (ports.Count > 0) {
-				foreach (var port in ports) {
+			if (devInfo.Count > 0) {
+				foreach (var port in devInfo) {
 					Console.WriteLine($"Found device at COM{port}.");
 					var count = 0;
+					var bri = 0;
 					var set = false;
 
 					while (!set) {
-						Console.WriteLine("Enter LED count:");
-						var input = Console.ReadLine();
+						if (port.Value.Value != 0) {
+							Console.WriteLine("Enter LED count:");
+							var input = Console.ReadLine();
 
-						if (!string.IsNullOrEmpty(input)) {
-							if (int.TryParse(input, out count)) {
-								set = true;
-							}	
+							if (!string.IsNullOrEmpty(input)) {
+								if (int.TryParse(input, out count)) {
+									set = true;
+								}
+							}
+
+							if (!set) Console.WriteLine("Invalid input.");
+						} else {
+							Console.WriteLine("Count auto-detected as " + count);
 						}
-						if (!set)Console.WriteLine("Invalid input.");
+
+						if (port.Value.Key != 0) {
+							Console.WriteLine("We have a brightness: " + port.Value.Key);
+							bri = port.Value.Key;
+						}
 					}
-					devs.Add(new Adalight(port, count));
+					devs.Add(new Adalight(port.Key, count,115200,bri));
 				}
 
 				foreach (var dev in devs) {

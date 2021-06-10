@@ -9,9 +9,17 @@
         <RepositoryUrl>https://github.com/d8ahazard/AdalightNet</RepositoryUrl>
         <RepositoryType>Git</RepositoryType>
         <PackageTags>adalight</PackageTags>
+        <PackageVersion>1.0.1</PackageVersion>
+        <AssemblyVersion>1.0.1</AssemblyVersion>
+        <FileVersion>1.0.1</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="runtime.linux-arm.runtime.native.System.IO.Ports" Version="5.0.0" />
+      <PackageReference Include="runtime.linux-arm64.runtime.native.System.IO.Ports" Version="5.0.0" />
+      <PackageReference Include="runtime.linux-x64.runtime.native.System.IO.Ports" Version="5.0.0" />
+      <PackageReference Include="runtime.native.System.IO.Ports" Version="5.0.1" />
+      <PackageReference Include="runtime.osx-x64.runtime.native.System.IO.Ports" Version="5.0.0" />
       <PackageReference Include="System.IO.Ports" Version="5.0.1" />
     </ItemGroup>
 
