@@ -208,35 +208,27 @@ namespace AdalightNet {
                         StopBits = StopBits.One,
                         ReadTimeout = 1500
                     };
-                    Debug.WriteLine("Trying port " + dev);
                     i.Open();
                     var line = i.ReadLine();
-                    Console.WriteLine("Line is " + line);
                     if (line.Substring(0, 3) == "Ada") {
                         var port = int.Parse(dev.Replace("COM", ""));
                         line = i.ReadLine();
-                        Console.WriteLine("Line2 is " + line);
                         var brightness = 0;
                         var ledCount = 0;
                         if (line.Contains("COUNT")) {
-                            if (int.TryParse(line.Replace("COUNT=",""), out ledCount)) {
-                                Console.WriteLine("We have a LED count too!: " + ledCount);
-                            }    
+                            int.TryParse(line.Replace("COUNT=", ""), out ledCount);
                         }
                         line = i.ReadLine();
-                        Console.WriteLine("Line3 is " + line);
                         if (line.Contains("BRI")) {
-                            if (int.TryParse(line.Replace("BRI=",""), out brightness)) {
-                                Console.WriteLine("We have a bri too!: " + brightness);
-                            }    
+                            int.TryParse(line.Replace("BRI=", ""), out brightness);
                         }
                         output[port] =  new KeyValuePair<int, int>(ledCount, brightness);
                     }
                     
                     i.Close();
                 }
-                catch (Exception e) {
-                    Console.WriteLine("Another error: " + e.Message);
+                catch (Exception) {
+                    //Console.WriteLine("Another error: " + e.Message);
                 }
             }
             return output;

@@ -9,9 +9,10 @@
         <RepositoryUrl>https://github.com/d8ahazard/AdalightNet</RepositoryUrl>
         <RepositoryType>Git</RepositoryType>
         <PackageTags>adalight</PackageTags>
-        <PackageVersion>1.0.1</PackageVersion>
+        <PackageVersion>1.0.3</PackageVersion>
         <AssemblyVersion>1.0.1</AssemblyVersion>
         <FileVersion>1.0.1</FileVersion>
+        <PackageReleaseNotes>Remove Logging</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
