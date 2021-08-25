@@ -45,7 +45,7 @@ namespace ConsoleTest {
 					var connected = dev.Connect();
 					var count = dev.LedCount;
 					var color = Color.Red;
-					if (connected) Console.WriteLine($"Setting strip on port {dev.PortNumber} to red.");
+					if (connected) Console.WriteLine($"Setting strip on port {dev.Port} to red.");
 					for (var i = 0; i < count; i++) {
 						// Update each pixel, but don't set the value yet.
 						dev.UpdatePixel(i, color, false);
@@ -61,7 +61,7 @@ namespace ConsoleTest {
 					dev.Connect();
 					var count = dev.LedCount;
 					var color = Color.Blue;
-					Console.WriteLine($"Setting strip on port {dev.PortNumber} to red.");
+					Console.WriteLine($"Setting strip on port {dev.Port} to red.");
 					for (var i = 0; i < count; i++) {
 						// Update each pixel, and immediately set the value (Color wipe)
 						dev.UpdatePixel(i, color);
@@ -77,7 +77,7 @@ namespace ConsoleTest {
 					dev.Connect();
 					var count = dev.LedCount;
 					var color = Color.Blue;
-					Console.WriteLine($"Setting strip on port {dev.PortNumber} to red.");
+					Console.WriteLine($"Setting strip on port {dev.Port} to red.");
 					var colors = new List<Color>();
 					for (var i = 0; i < count; i++) {
 						colors.Add(color);
@@ -94,7 +94,7 @@ namespace ConsoleTest {
 					// Disconnect our device. If "false" is specified as a parameter, lights will remain in
 					// the last state they were in.
 					var disconnected = dev.Disconnect();
-					if (disconnected) Console.WriteLine($"Device on port {dev.PortNumber} is disconnected.");
+					if (disconnected) Console.WriteLine($"Device on port {dev.Port} is disconnected.");
 					// Completely dispose of it and the underlying port
 					dev.Dispose();
 				}

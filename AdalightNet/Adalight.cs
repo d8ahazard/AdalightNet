@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO.Ports;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AdalightNet {
@@ -14,6 +15,12 @@ namespace AdalightNet {
 
         private readonly byte[] _serialData;
         private const string MagicWord = "Ada";
+        private const string CmdWord = "Adb";
+        
+        private const string StWord = "ST";
+        private const string BrWord = "BR";
+
+        private string _line;
         
         /// <summary>
         /// Is our device connected?
@@ -23,16 +30,17 @@ namespace AdalightNet {
         /// <summary>
         /// The currently assigned port number
         /// </summary>
-        public int PortNumber { get; }
+        public string Port { get; }
         
         /// <summary>
         /// The currently assigned led count
         /// </summary>
-        public int LedCount { get; }
+        public int LedCount { get; set; }
 
         private int _brightness;
 
         private bool _sending;
+        private AutoResetEvent _dataReceived;
 
         /// <summary>
         /// Initialize a new Adalight Device
@@ -41,25 +49,11 @@ namespace AdalightNet {
         /// <param name="ledCount">Number of LEDs to control</param>
         /// <param name="speed">Optional baud rate, default is 115200</param>
         /// <param name="brightness">Because sometimes, we can set the brightness.</param>
-        public Adalight(int port, int ledCount, int speed = 115200, int brightness = 255) {
+        public Adalight(string port, int ledCount, int speed = 115200, int brightness = 255) {
             // Set Properties
             LedCount = ledCount;
-            PortNumber = port;
+            Port = port;
             _brightness = brightness;
-
-            try {
-                // Create connection object
-                _comPort = new SerialPort {
-                    PortName = "COM" + PortNumber,
-                    BaudRate = speed,
-                    Parity = Parity.None,
-                    DataBits = 8,
-                    StopBits = StopBits.One
-                };
-            } catch (Exception) {
-                // Ignored
-            }
-
             // Create Matrix Array
             _ledMatrix = new Color[ledCount];
             for (var i = 0; i < ledCount; i++) {
@@ -68,6 +62,24 @@ namespace AdalightNet {
 
             // Redefine ByteArray length on runtime of current LED count
             _serialData = new byte[6 + ledCount * 3 + 1];
+            
+            _dataReceived = new AutoResetEvent(false);
+            try {
+                // Create connection object
+                _comPort = new SerialPort {
+                    PortName = port,
+                    BaudRate = speed,
+                    Parity = Parity.None,
+                    DataBits = 8,
+                    StopBits = StopBits.One
+                };
+                _comPort.DataReceived += ParseMessage;
+
+            } catch (Exception) {
+                // Ignored
+            }
+
+           
         }
         
 
@@ -85,8 +97,19 @@ namespace AdalightNet {
                 return false;
             }
         }
-        
 
+        private void ParseMessage(object sender, SerialDataReceivedEventArgs e) {
+            _line = _comPort.ReadLine();
+            if (_line.Contains("Ada") || _line.Contains("Adb")) {
+                _line = _line.Replace("Adb", "");
+                _line = _line.Replace("Ada", "");
+                _dataReceived.Set();
+            } else {
+                _line = "";
+            }
+        }
+
+       
         /// <summary>
         /// Disconnect from device
         /// </summary>
@@ -141,16 +164,51 @@ namespace AdalightNet {
                 _sending = true;
                 _brightness = brightness;
                 var output = new byte[6];
-                output[0] = Convert.ToByte(MagicWord[0]); // MagicWord
-                output[1] = Convert.ToByte(MagicWord[1]);
-                output[2] = Convert.ToByte(MagicWord[2]);
-                output[3] = 4;
-                output[4] = 20;
+                output[0] = Convert.ToByte(CmdWord[0]); // MagicWord
+                output[1] = Convert.ToByte(CmdWord[1]);
+                output[2] = Convert.ToByte(CmdWord[2]);
+                output[3] = Convert.ToByte(BrWord[0]);
+                output[4] = Convert.ToByte(BrWord[1]);
                 output[5] = (byte) brightness;
                 _comPort.Write(output, 0, output.Length);
                 _sending = false;
             }
+        }
 
+        public int[] GetState() {
+            while (_sending) {
+                Task.Delay(1);
+            }
+            var ledCount = 0;
+            var brightness = 0;
+
+            try {
+                _sending = true;
+                var output = new byte[6];
+                output[0] = Convert.ToByte(CmdWord[0]); // MagicWord
+                output[1] = Convert.ToByte(CmdWord[1]);
+                output[2] = Convert.ToByte(CmdWord[2]);
+                output[3] = Convert.ToByte(StWord[0]);
+                output[4] = Convert.ToByte(StWord[1]);
+                output[5] = 0;
+                _comPort.Write(output, 0, output.Length);
+                _sending = false;
+                _dataReceived.WaitOne(1000);
+                if (!string.IsNullOrEmpty(_line)) {
+                    if (_line.Contains("N=")) {
+                        var splits = _line.Split(";");
+                        foreach (var split in splits) {
+                            var values = split.Split("=");
+                            if (values[0] == "N") ledCount = int.Parse(values[1]);
+                            if (values[0] == "B") brightness = int.Parse(values[1]);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Debug.WriteLine("Exception: " + e.Message + " at " + e.StackTrace);
+            }
+
+            return new[] {ledCount, brightness};
             
         }
 
@@ -195,8 +253,8 @@ namespace AdalightNet {
         ///     <returns> A Dictionary of ports with possible brightness/ledCounts (if supported) responding to ada commands.
         ///     If no LED count/brightness is returned, it will be returned as 0;
         ///     </returns>
-        public static Dictionary<int, KeyValuePair<int,int>> FindDevices() {
-            var output = new Dictionary<int, KeyValuePair<int,int>>();
+        public static Dictionary<string, KeyValuePair<int,int>> FindDevices() {
+            var output = new Dictionary<string, KeyValuePair<int,int>>();
 
             foreach (var dev in SerialPort.GetPortNames()) {
                 try {
@@ -208,21 +266,11 @@ namespace AdalightNet {
                         StopBits = StopBits.One,
                         ReadTimeout = 1500
                     };
+                    
                     i.Open();
                     var line = i.ReadLine();
                     if (line.Substring(0, 3) == "Ada") {
-                        var port = int.Parse(dev.Replace("COM", ""));
-                        line = i.ReadLine();
-                        var brightness = 0;
-                        var ledCount = 0;
-                        if (line.Contains("COUNT")) {
-                            int.TryParse(line.Replace("COUNT=", ""), out ledCount);
-                        }
-                        line = i.ReadLine();
-                        if (line.Contains("BRI")) {
-                            int.TryParse(line.Replace("BRI=", ""), out brightness);
-                        }
-                        output[port] =  new KeyValuePair<int, int>(ledCount, brightness);
+                        output[dev] =  new KeyValuePair<int, int>(0,0);
                     }
                     
                     i.Close();
