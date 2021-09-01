@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace AdalightNet {
     public sealed class Adalight : IDisposable
     {
-        private readonly Color[] _ledMatrix;
+        private Color[] _ledMatrix;
 
         private readonly SerialPort _comPort;
 
@@ -25,7 +25,7 @@ namespace AdalightNet {
         /// <summary>
         /// Is our device connected?
         /// </summary>
-        public bool Connected;
+        public bool Connected { get; private set; }
     
         /// <summary>
         /// The currently assigned port number
@@ -35,12 +35,11 @@ namespace AdalightNet {
         /// <summary>
         /// The currently assigned led count
         /// </summary>
-        public int LedCount { get; set; }
-
-        private int _brightness;
+        public int LedCount { get; }
+        public int Brightness { get; private set; }
 
         private bool _sending;
-        private AutoResetEvent _dataReceived;
+        private readonly AutoResetEvent _dataReceived;
 
         /// <summary>
         /// Initialize a new Adalight Device
@@ -52,8 +51,8 @@ namespace AdalightNet {
         public Adalight(string port, int ledCount, int speed = 115200, int brightness = 255) {
             // Set Properties
             LedCount = ledCount;
+            Brightness = brightness;
             Port = port;
-            _brightness = brightness;
             // Create Matrix Array
             _ledMatrix = new Color[ledCount];
             for (var i = 0; i < ledCount; i++) {
@@ -91,6 +90,7 @@ namespace AdalightNet {
             try {
                 _comPort.Open();
                 Connected = true;
+                //UpdateBrightnessAsync(Brightness).ConfigureAwait(false);
                 return true;
             } catch (Exception ex) {
                 Debug.WriteLine("Exception connecting to port: " + ex.Message);
@@ -99,13 +99,32 @@ namespace AdalightNet {
         }
 
         private void ParseMessage(object sender, SerialDataReceivedEventArgs e) {
-            _line = _comPort.ReadLine();
+            _line = ReadLineAsync().Result;
             if (_line.Contains("Ada") || _line.Contains("Adb")) {
                 _line = _line.Replace("Adb", "");
                 _line = _line.Replace("Ada", "");
                 _dataReceived.Set();
             } else {
                 _line = "";
+            }
+        }
+
+        private async Task<string> ReadLineAsync() {
+            _dataReceived.Reset();
+            var buffer = new byte[1];
+            var ret = string.Empty;
+
+            // Read the input one byte at a time, convert the
+            // byte into a char, add that char to the overall
+            // response string, once the response string ends
+            // with the line ending then stop reading
+            while(true)
+            {
+                await _comPort.BaseStream.ReadAsync(buffer, 0, 1);
+                ret += _comPort.Encoding.GetString(buffer);
+
+                if (ret.EndsWith(_comPort.NewLine))
+                    return ret.Substring(0, ret.Length - _comPort.NewLine.Length);
             }
         }
 
@@ -122,7 +141,7 @@ namespace AdalightNet {
                     for (var i = 0; i < LedCount; i++) {
                         UpdatePixel(i, Color.Black, false);
                     }
-                    Update();
+                    Update().ConfigureAwait(false);
                 }
 
                 _comPort.Close();
@@ -139,16 +158,29 @@ namespace AdalightNet {
         /// </summary>
         /// <param name="colors">A list of colors to send. If less than LED count, black will be sent.</param>
         /// <param name="update">Whether to send the colors immediately, or wait.</param>
-        public void UpdateColors(List<Color> colors, bool update=true) {
+        public void UpdateColors(Color[] colors, bool update=true) {
+            if (colors.Length == _ledMatrix.Length) {
+                _ledMatrix = colors;
+            }
+
+            if (update) Update().ConfigureAwait(true);
+        }
+        
+        /// <summary>
+        /// Update the colors of the LED strip
+        /// </summary>
+        /// <param name="colors">A list of colors to send. If less than LED count, black will be sent.</param>
+        /// <param name="update">Whether to send the colors immediately, or wait.</param>
+        public async Task UpdateColorsAsync(Color[] colors, bool update=true) {
             for (var i = 0; i < LedCount; i++) {
                 var color = Color.FromArgb(0, 0, 0);
-                if (i < colors.Count) {
+                if (i < colors.Length) {
                     color = colors[i];
                 }
-
                 _ledMatrix[i] = color;
             }
-            if (update) Update();
+
+            if (update) await Update();
         }
 
         /// <summary>
@@ -159,10 +191,36 @@ namespace AdalightNet {
             while (_sending) {
                 Task.Delay(1);
             }
+
+            if (brightness < 0 || brightness > 255) {
+                return;
+            }
+
+            _sending = true;
+            var output = new byte[6];
+            output[0] = Convert.ToByte(CmdWord[0]); // MagicWord
+            output[1] = Convert.ToByte(CmdWord[1]);
+            output[2] = Convert.ToByte(CmdWord[2]);
+            output[3] = Convert.ToByte(BrWord[0]);
+            output[4] = Convert.ToByte(BrWord[1]);
+            output[5] = (byte) brightness;
+            _comPort.Write(output, 0, output.Length);
+            _sending = false;
+            var state = GetState();
+            if (state[1] == brightness) Brightness = brightness;
+        }
+        
+        /// <summary>
+        /// Update strip brightness using the power of LOVE...er...programming.
+        /// </summary>
+        /// <param name="brightness"></param>
+        public async Task UpdateBrightnessAsync(int brightness) {
+            while (_sending) {
+                await Task.Delay(1);
+            }
             
             if (brightness >= 0 && brightness <= 255) {
                 _sending = true;
-                _brightness = brightness;
                 var output = new byte[6];
                 output[0] = Convert.ToByte(CmdWord[0]); // MagicWord
                 output[1] = Convert.ToByte(CmdWord[1]);
@@ -170,11 +228,20 @@ namespace AdalightNet {
                 output[3] = Convert.ToByte(BrWord[0]);
                 output[4] = Convert.ToByte(BrWord[1]);
                 output[5] = (byte) brightness;
-                _comPort.Write(output, 0, output.Length);
+                await _comPort.BaseStream.WriteAsync(output, 0, output.Length);
+                await _comPort.BaseStream.FlushAsync();
                 _sending = false;
+                var state = await GetStateAsync();
+                if (state[0] == brightness) {
+                    Brightness = brightness;
+                }
             }
         }
 
+        /// <summary>
+        /// Get device brightness and led count
+        /// </summary>
+        /// <returns></returns>
         public int[] GetState() {
             while (_sending) {
                 Task.Delay(1);
@@ -211,6 +278,48 @@ namespace AdalightNet {
             return new[] {ledCount, brightness};
             
         }
+        
+        /// <summary>
+        /// Retrieve device brightness and led count async
+        /// </summary>
+        /// <returns></returns>
+        public async Task<int[]> GetStateAsync() {
+            while (_sending) {
+                await Task.Delay(1);
+            }
+            var ledCount = 0;
+            var brightness = 0;
+
+            try {
+                _sending = true;
+                var output = new byte[6];
+                output[0] = Convert.ToByte(CmdWord[0]); // MagicWord
+                output[1] = Convert.ToByte(CmdWord[1]);
+                output[2] = Convert.ToByte(CmdWord[2]);
+                output[3] = Convert.ToByte(StWord[0]);
+                output[4] = Convert.ToByte(StWord[1]);
+                output[5] = 0;
+                await _comPort.BaseStream.WriteAsync(output, 0, output.Length);
+                await _comPort.BaseStream.FlushAsync();
+                _sending = false;
+                _dataReceived.WaitOne(1000);
+                if (!string.IsNullOrEmpty(_line)) {
+                    if (_line.Contains("N=")) {
+                        var splits = _line.Split(";");
+                        foreach (var split in splits) {
+                            var values = split.Split("=");
+                            if (values[0] == "N") ledCount = int.Parse(values[1]);
+                            if (values[0] == "B") brightness = int.Parse(values[1]);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Debug.WriteLine("Exception: " + e.Message + " at " + e.StackTrace);
+            }
+
+            return new[] {ledCount, brightness};
+            
+        }
 
         /// <summary>
         /// Update an individual pixel in our LED strip
@@ -222,7 +331,7 @@ namespace AdalightNet {
             if (index < LedCount) {
                 _ledMatrix[index] = color;
             }
-            if (update) Update();
+            if (update) Update().ConfigureAwait(false);
         }
 
         private void WriteHeader() {
@@ -286,21 +395,20 @@ namespace AdalightNet {
         /// Send data to lights
         /// </summary>
         /// <returns>True if no errors occurred and connected, false if not</returns>
-        public bool Update() {
-            if (!Connected) return false;
+        public async Task Update() {
+            if (!Connected) return;
+            if (_sending) return;
             try {
-                while (_sending) {
-                    Task.Delay(1);
-                }
-
                 _sending = true;
                 WriteHeader();
                 WriteMatrixToSerialData();
-                _comPort.Write(_serialData, 0, _serialData.Length);
+                _comPort.Write(_serialData,0,_serialData.Length);
+                //await _comPort.BaseStream.WriteAsync(data, 0, data.Length);
+                //await _comPort.BaseStream.FlushAsync();
+                await Task.FromResult(true);
                 _sending = false;
-                return true;
             } catch (Exception) {
-                return false;
+                // Ignored
             }
         }
 

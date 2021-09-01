@@ -42,10 +42,17 @@ namespace ConsoleTest {
 
 				foreach (var dev in devs) {
 					// Connect to device
-					var connected = dev.Connect();
 					var count = dev.LedCount;
 					var color = Color.Red;
-					if (connected) Console.WriteLine($"Setting strip on port {dev.Port} to red.");
+					if (!dev.Connected) {
+						dev.UpdateBrightnessAsync(255).ConfigureAwait(false);
+						var state = dev.GetState();
+						var aState = dev.GetStateAsync().Result;
+						Console.WriteLine("State: " + state[0] + " or " + aState[1]);
+						Console.WriteLine($"Setting strip on port {dev.Port} to red.");
+					}
+					Console.WriteLine("Brightness is " + dev.Brightness);
+					
 					for (var i = 0; i < count; i++) {
 						// Update each pixel, but don't set the value yet.
 						dev.UpdatePixel(i, color, false);
@@ -57,10 +64,11 @@ namespace ConsoleTest {
 				Task.Delay(3000);
 				
 				foreach (var dev in devs) {
+					if (!dev.Connected) continue;
 					// Connect to device
-					dev.Connect();
 					var count = dev.LedCount;
 					var color = Color.Blue;
+					dev.UpdateBrightness(128);
 					Console.WriteLine($"Setting strip on port {dev.Port} to red.");
 					for (var i = 0; i < count; i++) {
 						// Update each pixel, and immediately set the value (Color wipe)
@@ -73,16 +81,33 @@ namespace ConsoleTest {
 				Task.Delay(3000);
 				
 				foreach (var dev in devs) {
-					// Connect to device
-					dev.Connect();
+					if (!dev.Connected) continue;
 					var count = dev.LedCount;
 					var color = Color.Blue;
 					Console.WriteLine($"Setting strip on port {dev.Port} to red.");
-					var colors = new List<Color>();
+					var colors = new Color[count];
 					for (var i = 0; i < count; i++) {
-						colors.Add(color);
+						colors[i] = color;
 						// Update each pixel, and immediately set the value (Color wipe)
 						dev.UpdateColors(colors);
+						// Wait to produce effect
+						Task.Delay(1);
+					}
+				}
+				
+				Task.Delay(3000);
+
+				
+				foreach (var dev in devs) {
+					if (!dev.Connected) continue;
+					var count = dev.LedCount;
+					var color = Color.Green;
+					Console.WriteLine($"Setting strip on port {dev.Port} to red.");
+					var colors = new Color[count];
+					for (var i = 0; i < count; i++) {
+						colors[i] = color;
+						// Update each pixel, and immediately set the value (Color wipe)
+						dev.UpdateColorsAsync(colors).ConfigureAwait(false);
 						// Wait to produce effect
 						Task.Delay(1);
 					}
