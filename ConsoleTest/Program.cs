@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading.Tasks;
 using AdalightNet;
 
@@ -45,13 +46,12 @@ namespace ConsoleTest {
 					var count = dev.LedCount;
 					var color = Color.Red;
 					if (!dev.Connected) {
-						dev.UpdateBrightnessAsync(255).ConfigureAwait(false);
+						dev.UpdateBrightness(255);
 						var state = dev.GetState();
-						var aState = dev.GetStateAsync().Result;
+						var aState = dev.GetState();
 						Console.WriteLine("State: " + state[0] + " or " + aState[1]);
 						Console.WriteLine($"Setting strip on port {dev.Port} to red.");
 					}
-					Console.WriteLine("Brightness is " + dev.Brightness);
 					
 					for (var i = 0; i < count; i++) {
 						// Update each pixel, but don't set the value yet.
@@ -89,7 +89,7 @@ namespace ConsoleTest {
 					for (var i = 0; i < count; i++) {
 						colors[i] = color;
 						// Update each pixel, and immediately set the value (Color wipe)
-						dev.UpdateColors(colors);
+						dev.UpdateColors(colors.ToList());
 						// Wait to produce effect
 						Task.Delay(1);
 					}
@@ -107,7 +107,7 @@ namespace ConsoleTest {
 					for (var i = 0; i < count; i++) {
 						colors[i] = color;
 						// Update each pixel, and immediately set the value (Color wipe)
-						dev.UpdateColorsAsync(colors).ConfigureAwait(false);
+						dev.UpdateColorsAsync(colors.ToList()).ConfigureAwait(false);
 						// Wait to produce effect
 						Task.Delay(1);
 					}
